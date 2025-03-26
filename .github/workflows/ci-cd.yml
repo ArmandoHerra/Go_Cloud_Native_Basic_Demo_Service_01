@@ -39,9 +39,14 @@ jobs:
           AWS_ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
 
       - name: Run Security Scan with Trivy
-        uses: aquasecurity/trivy-action@v0.30.0
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
       - name: Push Docker Image to AWS ECR
         run: |
