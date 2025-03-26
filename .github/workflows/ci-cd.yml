@@ -15,10 +15,35 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
+      - name: Create placeholder .env file if missing
+        run: |
+          if [ ! -f src/.env ]; then
+            echo "# Placeholder .env file" > src/.env
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+
+      - name: Login to AWS ECR
+        id: ecr_login
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          registry-type: ecr
 
       - name: Build Docker Image
         run: |
           IMAGE_TAG=${{ github.sha }}
           docker build -t basic-demo-microservice-01:${IMAGE_TAG} .
+          docker tag basic-demo-microservice-01:${IMAGE_TAG} ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:${IMAGE_TAG}
+        env:
+          AWS_ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
+
+      - name: Run Security Scan with Trivy
+        uses: aquasecurity/trivy-action@v0.6.0
+        with:
+          image-ref: ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:${{ github.sha }}
+
+      - name: Push Docker Image to AWS ECR
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          docker push ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:${IMAGE_TAG}
