@@ -22,6 +22,12 @@ run-local:
 build-prod:
 	docker build -f $(DOCKERFILE) -t $(PROD_IMAGE_NAME) .
 
+# Push manually the production image to ECR
+push-prod:
+	./ecr-login.sh && \
+	docker tag $(PROD_IMAGE_NAME) 933673765333.dkr.ecr.us-east-1.amazonaws.com/basic-demo-microservice-01:latest && \
+	docker push 933673765333.dkr.ecr.us-east-1.amazonaws.com/basic-demo-microservice-01
+
 # Run production container
 # run-prod:
 
