@@ -39,7 +39,7 @@ jobs:
           AWS_ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
 
       - name: Run Security Scan with Trivy
-        uses: aquasecurity/trivy-action@v0.6.0
+        uses: aquasecurity/trivy-action@v0.30.0
         with:
           image-ref: ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:${{ github.sha }}
 
