@@ -28,7 +28,7 @@ jobs:
         id: ecr_login
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registry-type: ecr
+          registry-type: private
 
       - name: Build Docker Image
         run: |
