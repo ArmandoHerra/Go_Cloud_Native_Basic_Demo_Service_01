@@ -12,17 +12,17 @@ RUN go mod download
 COPY src/ .
 
 # Build the application
-RUN go build -o basic-demo-service .
+RUN go build -o basic-demo-microservice .
 
 # Stage 2: Final stage
 FROM alpine:3.14
 WORKDIR /app
 
 # Copy the compiled binary from the builder stage
-COPY --from=builder /app/basic-demo-service .
+COPY --from=builder /app/basic-demo-microservice .
 
 # Copy the .env file from the src directory into the image
 COPY src/.env /app/.env
 
 EXPOSE 80
-CMD ["./basic-demo-service"]
+CMD ["./basic-demo-microservice"]

@@ -3,7 +3,7 @@
 # include .env
 # export 
 
-APP_NAME := basic-demo-service-01
+APP_NAME := basic-demo-microservice-01
 DOCKERFILE := Dockerfile
 LOCAL_IMAGE_NAME := $(APP_NAME):local
 PROD_IMAGE_NAME := $(APP_NAME):latest
