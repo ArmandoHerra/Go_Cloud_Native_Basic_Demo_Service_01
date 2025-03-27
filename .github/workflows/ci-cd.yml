@@ -61,3 +61,4 @@ jobs:
         run: |
           IMAGE_TAG=${{ github.sha }}
           docker push ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:${IMAGE_TAG}
+
