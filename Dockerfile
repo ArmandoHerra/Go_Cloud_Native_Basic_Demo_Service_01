@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM golang:1.18-alpine AS builder
+FROM golang:1.22-bullseye AS builder
 
 # Set the working directory
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY src/ .
 RUN go build -o basic-demo-microservice .
 
 # Stage 2: Final stage
-FROM alpine:3.14
+FROM gcr.io/distroless/base
 WORKDIR /app
 
 # Copy the compiled binary from the builder stage
