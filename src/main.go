@@ -1,95 +1,78 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
-// getEnvPropertiesPath returns the path from ENV_PROPERTIES_PATH or defaults to "./.env"
-func getEnvPropertiesPath() string {
-	if path := os.Getenv("ENV_PROPERTIES_PATH"); path != "" {
-		return path
-	}
-	// Default to current working directory with .env
-	return "./.env"
-}
-
-// readEnvProperties reads the .env file and returns key/value pairs.
-func readEnvProperties() map[string]string {
-	envMap := make(map[string]string)
-	path := getEnvPropertiesPath()
-	data, err := os.ReadFile(path)
-
+func main() {
+	// Create in-cluster config
+	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Printf("Error reading env properties from %s: %v", path, err)
-		return envMap
+		log.Fatalf("Error creating in-cluster config: %v", err)
 	}
 
-	lines := strings.Split(string(data), "\n")
-
-	for _, line := range lines {
-		if trimmed := strings.TrimSpace(line); trimmed != "" && !strings.HasPrefix(trimmed, "#") {
-			parts := strings.SplitN(trimmed, "=", 2)
-			if len(parts) == 2 {
-				envMap[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
-			}
-		}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalf("Error creating Kubernetes client: %v", err)
 	}
 
-	return envMap
-}
+	// Get the node name from environment injected via downward API
+	nodeName := os.Getenv("NODE_NAME")
+	if nodeName == "" {
+		log.Fatalf("NODE_NAME environment variable is not set")
+	}
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	// Read properties from the .env file.
-	env := readEnvProperties()
+	// Fetch the node object
+	node, err := clientset.CoreV1().Nodes().Get(context.Background(), nodeName, metav1.GetOptions{})
+	if err != nil {
+		log.Fatalf("Error retrieving node %q: %v", nodeName, err)
+	}
 
-	appVersion := env["APP_VERSION"]
+	// Read labels for region and AZ
+	region := node.Labels["topology.kubernetes.io/region"]
+	zone := node.Labels["topology.kubernetes.io/zone"]
+
+	// Fallback to legacy labels if needed
+	if region == "" || zone == "" {
+		region = node.Labels["failure-domain.beta.kubernetes.io/region"]
+		zone = node.Labels["failure-domain.beta.kubernetes.io/zone"]
+	}
+
+	appVersion := os.Getenv("APP_VERSION")
 	if appVersion == "" {
 		appVersion = "Unknown"
 	}
 
-	cloudProvider := env["CLOUD_PROVIDER"]
-	if cloudProvider == "" {
-		cloudProvider = "Unknown"
-	}
+	fmt.Printf("App Version: %s\n", appVersion)
+	fmt.Printf("Running on Node: %s\n", nodeName)
+	fmt.Printf("Region: %s\n", region)
+	fmt.Printf("Zone: %s\n", zone)
 
-	region := env["REGION"]
-	if region == "" {
-		region = "Unknown"
-	}
+	// Serve HTTP requests (for example)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		response := fmt.Sprintf(`
+			<html>
+				<head><title>Info Web App</title></head>
+				<body>
+					<h1>Info Web App</h1>
+					<p>Application Version: %s</p>
+					<p>Running on Node: %s</p>
+					<p>Region: %s</p>
+					<p>Availability Zone: %s</p>
+				</body>
+			</html>`, appVersion, nodeName, region, zone)
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(response))
+	})
 
-	az := env["AZ"]
-	if az == "" {
-		az = "Unknown"
-	}
-
-	k8sProvider := env["K8S_PROVIDER"]
-	if k8sProvider == "" {
-		k8sProvider = "Unknown"
-	}
-
-	response := fmt.Sprintf(`
-		<html>
-			<head><title>Info Web App</title></head>
-			<body>
-				<h1>Info Web App</h1>
-				<p>Application Version: %s</p>
-				<p>Cloud Provider: %s</p>
-				<p>Region: %s</p>
-				<p>Availability Zone: %s</p>
-				<p>Kubernetes Provider: %s</p>
-			</body>
-		</html>`, appVersion, cloudProvider, region, az, k8sProvider)
-
-	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(response))
-}
-
-func main() {
-	http.HandleFunc("/", handler)
 	log.Println("Starting server on port 80")
 	if err := http.ListenAndServe(":80", nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
