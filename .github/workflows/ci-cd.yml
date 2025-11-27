@@ -60,7 +60,9 @@ jobs:
       - name: Push Docker Image to AWS ECR
         run: |
           IMAGE_TAG=${{ github.sha }}
+          docker tag basic-demo-microservice-01:${IMAGE_TAG} ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:latest
           docker push ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:${IMAGE_TAG}
+          docker push ${{ secrets.AWS_ECR_REGISTRY }}/basic-demo-microservice-01:latest
 
       - name: Login to Azure
         uses: azure/login@v2
