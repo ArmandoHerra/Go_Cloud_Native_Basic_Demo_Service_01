@@ -75,5 +75,8 @@ jobs:
       - name: Tag and Push Docker Image to Azure ACR
         run: |
           IMAGE_TAG=${{ github.sha }}
-          docker tag basic-demo-microservice-01:${IMAGE_TAG} aksmultiregiondemoacr.azurecr.io/basic-demo-microservice-01:${IMAGE_TAG}
-          docker push aksmultiregiondemoacr.azurecr.io/basic-demo-microservice-01:${IMAGE_TAG}
+          ACR_REPO="aksmultiregiondemoacr.azurecr.io/basic-demo-microservice-01"
+          docker tag basic-demo-microservice-01:${IMAGE_TAG} ${ACR_REPO}:${IMAGE_TAG}
+          docker tag basic-demo-microservice-01:${IMAGE_TAG} ${ACR_REPO}:latest
+          docker push ${ACR_REPO}:${IMAGE_TAG}
+          docker push ${ACR_REPO}:latest
