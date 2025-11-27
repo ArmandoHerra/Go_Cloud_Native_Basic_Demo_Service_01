@@ -48,4 +48,3 @@ clean:
 # Show status
 status:
 	docker ps --filter "name=$(APP_NAME)"
-
